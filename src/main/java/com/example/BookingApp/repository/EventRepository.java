@@ -1,37 +1,33 @@
 package com.example.BookingApp.repository;
 
-
-
-
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.example.BookingApp.entity.Event;
+import com.example.BookingApp.entityenums.EventStatus;
+import com.example.BookingApp.entityenums.EventType;
 
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
-public class EventRepository {
-    private final Map<Long, Event> events = new HashMap<>();
-    private Long idCounter = 1L;
-
-    public List<Event> findAll() {
-        return new ArrayList<>(events.values());
-    }
-
-    public Event findById(Long id) {
-        return events.get(id);
-    }
-
-    public Event save(Event event) {
-        if (event.getId() == null) {
-            event.setId(idCounter);
-        }
-        events.put(event.getId(), event);
-        return event;
-    }
-
-    public void delete(Long id) {
-        events.remove(id);
-    }
+public interface EventRepository extends JpaRepository<Event, Long> {
+    
+    List<Event> findByStatusOrderByEventDateAsc(EventStatus status);
+    
+    List<Event> findByEventTypeAndStatusOrderByEventDateAsc(EventType eventType, EventStatus status);
+    
+    @Query("SELECT e FROM Event e WHERE e.eventDate >= :startDate AND e.eventDate <= :endDate AND e.status = :status")
+    List<Event> findByDateRangeAndStatus(@Param("startDate") LocalDateTime startDate, 
+                                       @Param("endDate") LocalDateTime endDate, 
+                                       @Param("status") EventStatus status);
+    
+    @Query("SELECT e FROM Event e WHERE e.venue.city = :city AND e.status = :status ORDER BY e.eventDate ASC")
+    List<Event> findByCityAndStatus(@Param("city") String city, @Param("status") EventStatus status);
+    
+    @Query("SELECT e FROM Event e WHERE LOWER(e.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(e.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    List<Event> findByTitleOrDescriptionContainingIgnoreCase(@Param("keyword") String keyword);
 }
 
