@@ -6,6 +6,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+
+import com.example.BookingApp.entityenums.SeatStatus;
+import com.example.BookingApp.entityenums.SeatType;
 @Getter
 @Setter
 @NoArgsConstructor

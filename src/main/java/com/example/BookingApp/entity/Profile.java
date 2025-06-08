@@ -3,6 +3,8 @@ package com.example.BookingApp.entity;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.example.BookingApp.entityenums.Gender;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;

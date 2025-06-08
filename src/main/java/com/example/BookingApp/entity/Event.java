@@ -1,20 +1,24 @@
 package com.example.BookingApp.entity;
 
 import jakarta.persistence.GeneratedValue;
+
+
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Setter
-@Getter
-@NoArgsConstructor
+
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.example.BookingApp.entityenums.EventStatus;
+import com.example.BookingApp.entityenums.EventType;
+
+@Setter
+@Getter
 @Entity
 @Table(name = "events")
 public class Event {

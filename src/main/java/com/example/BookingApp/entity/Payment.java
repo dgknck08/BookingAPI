@@ -7,6 +7,9 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.example.BookingApp.entityenums.PaymentMethod;
+import com.example.BookingApp.entityenums.PaymentStatus;
+
 @Getter
 @Setter
 @NoArgsConstructor
