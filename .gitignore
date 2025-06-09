@@ -31,3 +31,36 @@ build/
 
 ### VS Code ###
 .vscode/
+# Compiled class files
+*.class
+
+# Logs
+*.log
+
+# Package Files
+*.jar
+*.war
+*.ear
+
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# Eclipse
+.project
+.classpath
+.settings/
+target/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+
+# Maven wrapper
+.mvn/
+!**/mvnw
+!**/mvnw.cmd
