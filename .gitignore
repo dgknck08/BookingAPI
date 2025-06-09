@@ -64,3 +64,6 @@ Thumbs.db
 .mvn/
 !**/mvnw
 !**/mvnw.cmd
+# Spring config
+application.properties
+application.yml
