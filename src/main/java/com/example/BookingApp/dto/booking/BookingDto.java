@@ -1,10 +1,13 @@
-package com.example.BookingApp.dto;
+package com.example.BookingApp.dto.booking;
 import jakarta.validation.constraints.NotNull;
+
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import com.example.BookingApp.entityenums.BookingStatus;
 
 @Getter
 @Setter
@@ -19,7 +22,7 @@ public class BookingDto {
     
     private String bookingReference;
     private BigDecimal totalAmount;
-    private String status;
+    private BookingStatus status;
     private LocalDateTime reservedUntil;
     private LocalDateTime bookedAt;
     private LocalDateTime confirmedAt;

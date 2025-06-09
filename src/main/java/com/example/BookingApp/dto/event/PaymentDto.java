@@ -1,11 +1,19 @@
-package com.example.BookingApp.dto;
-import com.booking.entity.PaymentMethod;
-import com.booking.entity.PaymentStatus;
+package com.example.BookingApp.dto.event;
+
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import com.example.BookingApp.entityenums.PaymentMethod;
+import com.example.BookingApp.entityenums.PaymentStatus;
+
+
+@Getter
+@Setter
 public class PaymentDto {
     private Long id;
     
