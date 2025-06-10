@@ -1,72 +1,97 @@
 package com.example.BookingApp.util;
 
-
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
-
 import com.example.BookingApp.dto.user.UserDto;
 import com.example.BookingApp.entity.User;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
 
-
-
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SessionService {
-    
-    private static final String SESSION_CACHE = "sessions";
-    private static final String USER_SESSION_CACHE = "userSessions";
-    
-    @CachePut(value = SESSION_CACHE, key = "#sessionId")
-    public UserDto createUserSession(String sessionId, User user) {
+
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    private static final String SESSION_PREFIX = "session:";
+    private static final String USER_SESSION_PREFIX = "user_session:";
+    private static final long SESSION_TIMEOUT = 30; // 30 minutes
+
+    public SessionService(RedisTemplate<String, Object> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
+
+    public void createUserSession(String sessionId, User user) {
+        String sessionKey = SESSION_PREFIX + sessionId;
+        String userSessionKey = USER_SESSION_PREFIX + user.getId(); // Use ID instead of username
+
         UserDto userDto = convertToDto(user);
-        
-        // user-->session
-        cacheUserToSession(user.getId(), sessionId);
-        
-        return userDto; //sesionId = key
+
+        redisTemplate.opsForValue().set(sessionKey, userDto, SESSION_TIMEOUT, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(userSessionKey, sessionId, SESSION_TIMEOUT, TimeUnit.MINUTES);
     }
-    
-    @Cacheable(value = SESSION_CACHE, key = "#sessionId")
+
     public UserDto getUserFromSession(String sessionId) {
-        // null -> cache miss
-        // Spring Caching
-        return null;
-    }
-    
-    @CachePut(value = USER_SESSION_CACHE, key = "#userId")
-    public String cacheUserToSession(Long userId, String sessionId) {
-        return sessionId;
-    }
-    
-    @CacheEvict(value = SESSION_CACHE, key = "#sessionId")
-    public void invalidateSession(String sessionId) {
-        //user-->session
-        UserDto userDto = getUserFromSession(sessionId);
+        if (sessionId == null || sessionId.isEmpty()) return null;
+        
+        UserDto userDto = (UserDto) redisTemplate.opsForValue().get(SESSION_PREFIX + sessionId);
+        
+        // Extend session if user found
         if (userDto != null) {
-            invalidateUserSession(userDto.getId());
+            extendSession(sessionId, userDto);
         }
-        //@CacheEvict
+        
+        return userDto;
     }
-    
-    @CacheEvict(value = USER_SESSION_CACHE, key = "#userId")
-    public void invalidateUserSession(Long userId) {
-        // User session cache will be evicted automatically
+
+    public void extendSession(String sessionId) {
+        if (sessionId == null || sessionId.isEmpty()) return;
+        
+        UserDto userDto = (UserDto) redisTemplate.opsForValue().get(SESSION_PREFIX + sessionId);
+        if (userDto != null) {
+            extendSession(sessionId, userDto);
+        }
     }
-    
-    @CacheEvict(value = {SESSION_CACHE, USER_SESSION_CACHE}, allEntries = true)
-    public void invalidateAllSessions() {
-        // Clears all sessions - useful for maintenance
+
+    private void extendSession(String sessionId, UserDto userDto) {
+        String sessionKey = SESSION_PREFIX + sessionId;
+        String userSessionKey = USER_SESSION_PREFIX + userDto.getId();
+        
+        redisTemplate.expire(sessionKey, SESSION_TIMEOUT, TimeUnit.MINUTES);
+        redisTemplate.expire(userSessionKey, SESSION_TIMEOUT, TimeUnit.MINUTES);
     }
-    
+
+    public void invalidateSession(String sessionId) {
+        if (sessionId == null || sessionId.isEmpty()) return;
+        
+        String sessionKey = SESSION_PREFIX + sessionId;
+        UserDto userDto = (UserDto) redisTemplate.opsForValue().get(sessionKey);
+
+        if (userDto != null) {
+            redisTemplate.delete(USER_SESSION_PREFIX + userDto.getId());
+        }
+
+        redisTemplate.delete(sessionKey);
+    }
+
+    public void invalidateUserSessions(Long userId) {
+        if (userId == null) return;
+        
+        String userSessionKey = USER_SESSION_PREFIX + userId;
+        String sessionId = (String) redisTemplate.opsForValue().get(userSessionKey);
+
+        if (sessionId != null) {
+            invalidateSession(sessionId);
+        }
+    }
+
     public boolean isSessionValid(String sessionId) {
-        return getUserFromSession(sessionId) != null;
+        if (sessionId == null || sessionId.isEmpty()) return false;
+        return redisTemplate.hasKey(SESSION_PREFIX + sessionId);
     }
-    
+
     private UserDto convertToDto(User user) {
         UserDto dto = new UserDto();
-        dto.setId(user.getId());
+        dto.setId(user.getId()); // Include ID
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setRole(user.getRole());
