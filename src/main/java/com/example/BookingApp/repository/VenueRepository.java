@@ -12,7 +12,12 @@ import java.util.Optional;
 public interface VenueRepository extends JpaRepository<Venue, Long> {
     
     // Basic search queries
-    List<Venue> findByCity(String city);
+	List<Venue> findByCityIgnoreCase(String city);
+
+	List<Venue> findByNameContainingIgnoreCaseOrCityContainingIgnoreCase(String name, String city);
+
+	
+	List<Venue> findByCity(String city);
     
     List<Venue> findByCountry(String country);
     

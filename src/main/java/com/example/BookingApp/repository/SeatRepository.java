@@ -10,10 +10,17 @@ import org.springframework.stereotype.Repository;
 import com.example.BookingApp.entity.Seat;
 import com.example.BookingApp.entityenums.SeatStatus;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Repository
 public interface SeatRepository extends JpaRepository<Seat, Long> {
+
+	List<Seat> findByEventIdAndPriceBetweenOrderByPriceAsc(Long eventId, BigDecimal minPrice, BigDecimal maxPrice);
+
+	List<Seat> findByEventIdAndSectionOrderByRowNumberAscSeatNumberAsc(Long eventId, String section);
+
+	long countByEventId(Long eventId);
     
     List<Seat> findByEventIdOrderBySectionAscRowNumberAscSeatNumberAsc(Long eventId);
     
@@ -25,4 +32,7 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
     @Modifying
     @Query("UPDATE Seat s SET s.status = :newStatus WHERE s.id = :seatId")
     int updateSeatStatus(@Param("seatId") Long seatId, @Param("newStatus") SeatStatus newStatus);
+    
+    
+    
 }

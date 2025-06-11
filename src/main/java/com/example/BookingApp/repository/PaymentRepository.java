@@ -16,6 +16,11 @@ import java.util.Optional;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
+	boolean existsByBookingId(Long bookingId);
+
+	List<Payment> findByBooking_User_UsernameOrderByCreatedAtDesc(String username);
+
+	Optional<Payment> findByBookingId(Long bookingId);
     
     Optional<Payment> findByPaymentReference(String paymentReference);
     
