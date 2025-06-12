@@ -13,7 +13,6 @@ public class UserMapper {
         dto.setEmail(user.getEmail());
         dto.setRole(user.getRole());
         dto.setActive(user.isActive());
-        dto.setCreatedAt(user.getCreatedAt());
         return dto;
     }
 
@@ -25,7 +24,8 @@ public class UserMapper {
         user.setEmail(dto.getEmail());
         user.setRole(dto.getRole());
         user.setActive(dto.isActive());
-        user.setCreatedAt(dto.getCreatedAt());
         return user;
     }
+    
+    
 }
