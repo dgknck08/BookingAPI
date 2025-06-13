@@ -16,11 +16,11 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
-
 @Service
 public class AuthService {
 
@@ -30,8 +30,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public AuthService(UserRepository userRepository, UserService userService,
-                       PasswordEncoder passwordEncoder, SessionService sessionService,
-                       AuthenticationManager authenticationManager) {
+                       SessionService sessionService, AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.sessionService = sessionService;
@@ -47,7 +46,7 @@ public class AuthService {
             
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
             
-            // User entity'sini database'den çek (Redis için tam bilgi gerekli)
+            // User entity'sini database'den çek
             Optional<User> userOpt = userRepository.findById(userDetails.getId());
             if (userOpt.isEmpty()) {
                 return new AuthResponse("User not found", false);
@@ -55,8 +54,16 @@ public class AuthService {
             
             User user = userOpt.get();
             
+            // Kullanıcının aktif olduğunu kontrol et
+            if (!user.isActive()) {
+                return new AuthResponse("Account is deactivated", false);
+            }
+            
             // Redis session oluştur
             sessionService.createUserSession(session.getId(), user);
+            
+            // SecurityContext'i güncelle
+            SecurityContextHolder.getContext().setAuthentication(authentication);
             
             return new AuthResponse("Login successful", session.getId(), true);
             
@@ -66,45 +73,78 @@ public class AuthService {
             return new AuthResponse("Invalid username or password", false);
         } catch (AuthenticationException e) {
             return new AuthResponse("Authentication failed: " + e.getMessage(), false);
+        } catch (Exception e) {
+            return new AuthResponse("Login failed: " + e.getMessage(), false);
         }
     }
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            return new AuthResponse("Username already exists", false);
-        }
-        
-        if (userRepository.existsByEmail(request.getEmail())) {
-            return new AuthResponse("Email already exists", false);
-        }
-
         try {
+            if (userRepository.existsByUsername(request.getUsername())) {
+                return new AuthResponse("Username already exists", false);
+            }
+            
+            if (userRepository.existsByEmail(request.getEmail())) {
+                return new AuthResponse("Email already exists", false);
+            }
+
             userService.createUser(request);
             return new AuthResponse("Registration successful", true);
+            
         } catch (Exception e) {
             return new AuthResponse("Registration failed: " + e.getMessage(), false);
         }
     }
 
     public void logout(HttpSession session) {
-        if (session != null) {
-            sessionService.invalidateSession(session.getId());
-            session.invalidate();
+        try {
+            if (session != null) {
+                // Önce Redis session'ı temizle
+                sessionService.invalidateSession(session.getId());
+                
+                // SecurityContext'i temizle
+                SecurityContextHolder.clearContext();
+                
+                // HTTP session'ı invalidate et (dikkatli ol, response gönderildikten sonra)
+                session.invalidate();
+            }
+        } catch (Exception e) {
+            // Session zaten invalidate olmuş olabilir, logla ve devam et
+            System.err.println("Logout error: " + e.getMessage());
         }
     }
 
     public UserDto getCurrentUser(HttpSession session) {
-        if (session == null) {
+        try {
+            if (session == null) {
+                return null;
+            }
+            
+            // Önce Redis session'dan kontrol et
+            UserDto userFromSession = sessionService.getUserFromSession(session.getId());
+            if (userFromSession != null) {
+                return userFromSession;
+            }
+            
+            // SecurityContext'ten de kontrol et (fallback)
+            return SecurityUtils.getCurrentUser();
+            
+        } catch (Exception e) {
             return null;
         }
-        
-        // Önce session'dan kontrol et
-        UserDto userFromSession = sessionService.getUserFromSession(session.getId());
-        if (userFromSession != null) {
-            return userFromSession;
+    }
+    
+    // Session durumunu kontrol etmek için yardımcı method
+    public boolean isSessionValid(HttpSession session) {
+        if (session == null) {
+            return false;
         }
         
-        // SecurityContext'ten de kontrol et
-        return SecurityUtils.getCurrentUser();
+        try {
+            return sessionService.isSessionValid(session.getId()) && 
+                   sessionService.getUserFromSession(session.getId()) != null;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
