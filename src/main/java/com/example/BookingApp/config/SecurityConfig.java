@@ -23,7 +23,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -69,12 +68,13 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // Redis session kullandığınız için Spring session'ı devre dışı 
             .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider())
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                 .requestMatchers("/api/events/public/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/error").permitAll()
@@ -83,6 +83,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/bookings/**").authenticated()
                 .requestMatchers("/api/profile/**").authenticated()
                 .requestMatchers("/api/events/{eventId}/seats").authenticated()
+                .requestMatchers("/api/auth/logout", "/api/auth/me", "/api/auth/check").authenticated()
                 
                 // Admin endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -92,20 +93,10 @@ public class SecurityConfig {
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint(authenticationEntryPoint)
             )
-            .logout(logout -> logout
-                .logoutUrl("/api/auth/logout")
-                .logoutSuccessHandler((request, response, authentication) -> {
-                    if (request.getSession(false) != null) {
-                        sessionService.invalidateSession(request.getSession().getId());
-                    }
-                    response.setStatus(200);
-                    response.getWriter().write("{\"message\":\"Logout successful\"}");
-                    response.setContentType("application/json");
-                })
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID", "BOOKING_SESSION")
-            )
-            .addFilterBefore(customSessionAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+            // Logout handler disable contorllerda işlem.
+            .logout(logout -> logout.disable())
+            // Filter sırası düzeltildi.
+            .addFilterAfter(customSessionAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         
         return http.build();
     }
