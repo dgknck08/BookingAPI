@@ -1,6 +1,5 @@
 package com.example.BookingApp.service;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -49,12 +48,79 @@ public class EventService {
         return events.stream().map(this::convertToDto).collect(Collectors.toList());
     }
     
+    // Geliştirilmiş arama fonksiyonu
     public List<EventDto> searchEvents(String keyword) {
-        List<Event> events = eventRepository.findByTitleOrDescriptionContainingIgnoreCase(keyword);
+        // Boş veya null keyword kontrolü
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getAllActiveEvents();
+        }
+        
+        List<Event> events = eventRepository.findByKeywordAndStatus(keyword.trim(), EventStatus.ACTIVE);
+        return events.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+    
+    // Otomatik tamamlama önerileri
+    public List<String> getSearchSuggestions(String keyword) {
+        if (keyword == null || keyword.trim().length() < 2) {
+            return List.of();
+        }
+        
+        return eventRepository.findTitleSuggestions(keyword.trim(), EventStatus.ACTIVE)
+                .stream()
+                .limit(5) // En fazla 5 öneri
+                .collect(Collectors.toList());
+    }
+    
+    // Kategori ile filtrelenmiş arama
+    public List<EventDto> searchEventsByType(String keyword, EventType eventType) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getEventsByType(eventType);
+        }
+        
+        List<Event> events = eventRepository.findByEventTypeAndKeyword(eventType, keyword.trim(), EventStatus.ACTIVE);
+        return events.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+    
+    // Şehir ile filtrelenmiş arama
+    public List<EventDto> searchEventsByCity(String keyword, String city) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getEventsByCity(city);
+        }
+        
+        List<Event> events = eventRepository.findByCityAndKeyword(city, keyword.trim(), EventStatus.ACTIVE);
+        return events.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+    
+    // Gelişmiş arama - birden fazla filtre ile
+    public List<EventDto> advancedSearch(String keyword, EventType eventType, String city, 
+                                        LocalDateTime startDate, LocalDateTime endDate) {
+        List<Event> events;
+        
+        // Tüm aktif etkinlikleri al
+        events = eventRepository.findByStatusOrderByEventDateAsc(EventStatus.ACTIVE);
+        
         return events.stream()
-                .filter(e -> e.getStatus() == EventStatus.ACTIVE)
+                .filter(e -> keyword == null || keyword.trim().isEmpty() || 
+                           matchesKeyword(e, keyword.trim()))
+                .filter(e -> eventType == null || e.getEventType().equals(eventType))
+                .filter(e -> city == null || city.trim().isEmpty() || 
+                           e.getVenue().getCity().equalsIgnoreCase(city.trim()))
+                .filter(e -> startDate == null || e.getEventDate().isAfter(startDate) || 
+                           e.getEventDate().isEqual(startDate))
+                .filter(e -> endDate == null || e.getEventDate().isBefore(endDate) || 
+                           e.getEventDate().isEqual(endDate))
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+    
+    // Arama kelimesi eşleşme kontrolü
+    private boolean matchesKeyword(Event event, String keyword) {
+        String lowerKeyword = keyword.toLowerCase();
+        return (event.getTitle() != null && event.getTitle().toLowerCase().contains(lowerKeyword)) ||
+               (event.getDescription() != null && event.getDescription().toLowerCase().contains(lowerKeyword)) ||
+               (event.getOrganizer() != null && event.getOrganizer().toLowerCase().contains(lowerKeyword)) ||
+               (event.getVenue() != null && event.getVenue().getName() != null && 
+                event.getVenue().getName().toLowerCase().contains(lowerKeyword));
     }
     
     public Optional<EventDto> getEventById(Long eventId) {
