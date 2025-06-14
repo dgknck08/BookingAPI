@@ -1,4 +1,5 @@
 package com.example.BookingApp.controller;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -46,9 +47,48 @@ public class EventController {
         return ResponseEntity.ok(events);
     }
     
+    // Temel arama
     @GetMapping("/public/search")
     public ResponseEntity<List<EventDto>> searchEvents(@RequestParam String keyword) {
         List<EventDto> events = eventService.searchEvents(keyword);
+        return ResponseEntity.ok(events);
+    }
+    
+    // Otomatik tamamlama önerileri
+    @GetMapping("/public/search/suggestions")
+    public ResponseEntity<List<String>> getSearchSuggestions(@RequestParam String keyword) {
+        List<String> suggestions = eventService.getSearchSuggestions(keyword);
+        return ResponseEntity.ok(suggestions);
+    }
+    
+    // Kategori ile filtrelenmiş arama
+    @GetMapping("/public/search/type/{eventType}")
+    public ResponseEntity<List<EventDto>> searchEventsByType(
+            @RequestParam String keyword, 
+            @PathVariable EventType eventType) {
+        List<EventDto> events = eventService.searchEventsByType(keyword, eventType);
+        return ResponseEntity.ok(events);
+    }
+    
+    // Şehir ile filtrelenmiş arama
+    @GetMapping("/public/search/city/{city}")
+    public ResponseEntity<List<EventDto>> searchEventsByCity(
+            @RequestParam String keyword, 
+            @PathVariable String city) {
+        List<EventDto> events = eventService.searchEventsByCity(keyword, city);
+        return ResponseEntity.ok(events);
+    }
+    
+    // Gelişmiş arama - birden fazla filtre
+    @GetMapping("/public/search/advanced")
+    public ResponseEntity<List<EventDto>> advancedSearch(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) EventType eventType,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+        
+        List<EventDto> events = eventService.advancedSearch(keyword, eventType, city, startDate, endDate);
         return ResponseEntity.ok(events);
     }
     
