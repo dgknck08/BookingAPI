@@ -27,7 +27,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e FROM Event e WHERE e.venue.city = :city AND e.status = :status ORDER BY e.eventDate ASC")
     List<Event> findByCityAndStatus(@Param("city") String city, @Param("status") EventStatus status);
 
-    // Geliştirilmiş arama - title, description, organizer ve venue name'de arama yapar
+    // Geliştirilmiş arama - title, description, organizer ve venue arama 
     @Query("SELECT e FROM Event e WHERE " +
            "(LOWER(e.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(e.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
@@ -36,11 +36,11 @@ public interface EventRepository extends JpaRepository<Event, Long> {
            "AND e.status = :status ORDER BY e.eventDate ASC")
     List<Event> findByKeywordAndStatus(@Param("keyword") String keyword, @Param("status") EventStatus status);
 
-    // Sadece başlık ve açıklamada arama (mevcut)
+    // Sadece başlık ve açıklamada arama 
     @Query("SELECT e FROM Event e WHERE LOWER(e.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(e.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Event> findByTitleOrDescriptionContainingIgnoreCase(@Param("keyword") String keyword);
 
-    // Otomatik tamamlama için başlık önerileri
+    // Otomatik tamamlama için başlık 
     @Query("SELECT DISTINCT e.title FROM Event e WHERE " +
            "LOWER(e.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "AND e.status = :status ORDER BY e.title")

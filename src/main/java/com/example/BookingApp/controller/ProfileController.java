@@ -78,7 +78,6 @@ public class ProfileController {
         }
     }
     
-    // Inner class for change password request
     public static class ChangePasswordRequest {
         private String currentPassword;
         private String newPassword;

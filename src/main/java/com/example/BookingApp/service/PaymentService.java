@@ -33,7 +33,6 @@ public class PaymentService {
     
     @Transactional
     public PaymentDto processPayment(PaymentDto paymentDto, UserDto currentUser) {
-        // Validate booking
         Optional<Booking> bookingOpt = bookingRepository.findById(paymentDto.getBookingId());
         if (bookingOpt.isEmpty()) {
             throw new RuntimeException("Booking not found");
@@ -41,27 +40,22 @@ public class PaymentService {
         
         Booking booking = bookingOpt.get();
         
-        // Validate user owns the booking
         if (!booking.getUser().getUsername().equals(currentUser.getUsername())) {
             throw new RuntimeException("Unauthorized access to booking");
         }
         
-        // Check if booking is in correct status
         if (booking.getStatus() != BookingStatus.PENDING) {
             throw new RuntimeException("Booking is not in a payable state");
         }
         
-        // Check if payment already exists
         if (paymentRepository.existsByBookingId(booking.getId())) {
             throw new RuntimeException("Payment already processed for this booking");
         }
         
-        // Validate amount
         if (!paymentDto.getAmount().equals(booking.getTotalAmount())) {
             throw new RuntimeException("Payment amount does not match booking total");
         }
         
-        // Create payment record
         Payment payment = new Payment();
         payment.setBooking(booking);
         payment.setPaymentReference(generatePaymentReference());
@@ -71,7 +65,6 @@ public class PaymentService {
         payment.setStatus(PaymentStatus.PENDING);
         payment.setCreatedAt(LocalDateTime.now());
         
-        // Process payment (mock implementation)
         boolean paymentSuccessful = processPaymentWithGateway(paymentDto);
         
         if (paymentSuccessful) {
@@ -80,7 +73,6 @@ public class PaymentService {
             payment.setProcessedAt(LocalDateTime.now());
             payment.setGatewayResponse("SUCCESS");
             
-            // Confirm the booking
             bookingService.confirmBooking(booking.getId(), currentUser);
         } else {
             payment.setStatus(PaymentStatus.FAILED);
@@ -116,24 +108,20 @@ public class PaymentService {
         
         Payment payment = paymentOpt.get();
         
-        // Validate user owns the payment
         if (!payment.getBooking().getUser().getUsername().equals(currentUser.getUsername())) {
             throw new RuntimeException("Unauthorized access to payment");
         }
         
-        // Check if payment can be refunded
         if (payment.getStatus() != PaymentStatus.COMPLETED) {
             throw new RuntimeException("Only completed payments can be refunded");
         }
         
-        // Process refund (mock implementation)
         boolean refundSuccessful = processRefundWithGateway(payment);
         
         if (refundSuccessful) {
             payment.setStatus(PaymentStatus.REFUNDED);
             payment.setGatewayResponse("REFUND_SUCCESS");
             
-            // Cancel the associated booking
             bookingService.cancelBooking(payment.getBooking().getId(), currentUser);
         } else {
             throw new RuntimeException("Refund processing failed");
@@ -145,14 +133,11 @@ public class PaymentService {
     }
     
     private boolean processPaymentWithGateway(PaymentDto paymentDto) {
-        // Mock payment gateway integration
-        // In real implementation, integrate with payment providers like Stripe, PayPal, etc.
+
         
-        // Simulate payment processing
         try {
-            Thread.sleep(1000); // Simulate network delay
+            Thread.sleep(1000); 
             
-            // Mock validation rules
             if (paymentDto.getCardNumber() == null || paymentDto.getCardNumber().length() < 10) {
                 return false;
             }
@@ -161,7 +146,6 @@ public class PaymentService {
                 return false;
             }
             
-            // 90% success rate for demo
             return Math.random() > 0.1;
             
         } catch (InterruptedException e) {
@@ -171,10 +155,10 @@ public class PaymentService {
     }
     
     private boolean processRefundWithGateway(Payment payment) {
-        // Mock refund processing
+  
         try {
-            Thread.sleep(500); // Simulate network delay
-            return Math.random() > 0.05; // 95% success rate for refunds
+            Thread.sleep(500); 
+            return Math.random() > 0.05; 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return false;

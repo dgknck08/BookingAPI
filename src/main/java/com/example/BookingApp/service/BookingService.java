@@ -8,6 +8,7 @@ import com.example.BookingApp.entity.Seat;
 import com.example.BookingApp.entity.User;
 import com.example.BookingApp.entityenums.BookingStatus;
 import com.example.BookingApp.entityenums.SeatStatus;
+import com.example.BookingApp.exception.BookingException;
 import com.example.BookingApp.mapper.BookingMapper;
 import com.example.BookingApp.repository.BookingRepository;
 import com.example.BookingApp.repository.EventRepository;
@@ -16,6 +17,7 @@ import com.example.BookingApp.repository.UserRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -26,8 +28,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class BookingService {
-
-
 
     @Autowired
     private BookingRepository bookingRepository;
@@ -41,56 +41,65 @@ public class BookingService {
     @Autowired
     private UserRepository userRepository;
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public BookingDto createReservation(BookingDto bookingDto, UserDto currentUser) {
-        Event event = eventRepository.findById(bookingDto.getEventId())
-            .orElseThrow(() -> new RuntimeException("Event with id " + bookingDto.getEventId() + " not found"));
-
-        Seat seat = seatRepository.findById(bookingDto.getSeatId())
-            .orElseThrow(() -> new RuntimeException("Seat with id " + bookingDto.getSeatId() + " not found"));
-
-        if (seat.getStatus() != SeatStatus.AVAILABLE) {
-            throw new RuntimeException("Seat with id " + seat.getId() + " is not available");
+        // Validasyonlar
+        Event event = validateEvent(bookingDto.getEventId());
+        Seat seat = validateSeat(bookingDto.getSeatId(), event.getId());
+        User user = validateUser(currentUser.getUsername());
+        
+        // Event geçmiş tarihli mi kontrolü
+        if (event.getEventDate().isBefore(LocalDateTime.now())) {
+            throw new BookingException("Cannot book seats for past events");
         }
+        
+        validateSeatAvailability(seat);
+        
+        // Kullanıcının bu event için mevcut rezervasyonu var mı?
+        checkExistingUserBooking(user.getId(), event.getId());
 
-        List<BookingStatus> activeStatuses = Arrays.asList(BookingStatus.PENDING, BookingStatus.CONFIRMED);
-        if (bookingRepository.existsBySeatIdAndStatusIn(seat.getId(), activeStatuses)) {
-            throw new RuntimeException("Seat with id " + seat.getId() + " is already reserved or booked");
+        try {
+            // Booking 
+            Booking booking = BookingMapper.toEntity(bookingDto, event, seat, user);
+            
+            // Seat durumu
+            seat.setStatus(SeatStatus.RESERVED);
+            seatRepository.save(seat);
+            
+            booking = bookingRepository.save(booking);
+            
+            return BookingMapper.toDto(booking);
+            
+        } catch (Exception e) {
+
+            seat.setStatus(SeatStatus.AVAILABLE);
+            seatRepository.save(seat);
+            throw new BookingException("Failed to create reservation: " + e.getMessage());
         }
-
-        User user = userRepository.findByUsername(currentUser.getUsername())
-            .orElseThrow(() -> new RuntimeException("User " + currentUser.getUsername() + " not found"));
-
-        Booking booking = BookingMapper.toEntity(bookingDto, event, seat, user);
-
-        // Update seat status
-        seat.setStatus(SeatStatus.RESERVED);
-        seatRepository.save(seat);
-
-        booking = bookingRepository.save(booking);
-
-        return BookingMapper.toDto(booking);
     }
 
     @Transactional
     public BookingDto confirmBooking(Long bookingId, UserDto currentUser) {
         Booking booking = bookingRepository.findById(bookingId)
-            .orElseThrow(() -> new RuntimeException("Booking with id " + bookingId + " not found"));
+            .orElseThrow(() -> new BookingException("Booking not found"));
 
-        if (!booking.getUser().getUsername().equals(currentUser.getUsername())) {
-            throw new RuntimeException("Unauthorized access to booking with id " + bookingId);
+        validateBookingOwnership(booking, currentUser.getUsername());
+        
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new BookingException("Only pending bookings can be confirmed");
         }
 
         if (booking.getReservedUntil().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Reservation with id " + bookingId + " has expired");
+
+            cancelExpiredBooking(booking);
+            throw new BookingException("Reservation has expired");
         }
 
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setConfirmedAt(LocalDateTime.now());
-
         booking.getSeat().setStatus(SeatStatus.BOOKED);
+        
         seatRepository.save(booking.getSeat());
-
         booking = bookingRepository.save(booking);
 
         return BookingMapper.toDto(booking);
@@ -99,24 +108,24 @@ public class BookingService {
     @Transactional
     public void cancelBooking(Long bookingId, UserDto currentUser) {
         Booking booking = bookingRepository.findById(bookingId)
-            .orElseThrow(() -> new RuntimeException("Booking with id " + bookingId + " not found"));
+            .orElseThrow(() -> new BookingException("Booking not found"));
 
-        if (!booking.getUser().getUsername().equals(currentUser.getUsername())) {
-            throw new RuntimeException("Unauthorized access to booking with id " + bookingId);
+        validateBookingOwnership(booking, currentUser.getUsername());
+        
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new BookingException("Booking is already cancelled");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
-
         booking.getSeat().setStatus(SeatStatus.AVAILABLE);
+        
         seatRepository.save(booking.getSeat());
-
         bookingRepository.save(booking);
     }
 
     public List<BookingDto> getUserBookings(UserDto currentUser) {
-        User user = userRepository.findByUsername(currentUser.getUsername())
-            .orElseThrow(() -> new RuntimeException("User " + currentUser.getUsername() + " not found"));
-
+        User user = validateUser(currentUser.getUsername());
+        
         List<Booking> bookings = bookingRepository.findByUserOrderByBookedAtDesc(user);
         return bookings.stream()
                 .map(BookingMapper::toDto)
@@ -134,10 +143,64 @@ public class BookingService {
                 LocalDateTime.now(), BookingStatus.PENDING);
 
         for (Booking booking : expiredBookings) {
-            booking.setStatus(BookingStatus.CANCELLED);
-            booking.getSeat().setStatus(SeatStatus.AVAILABLE);
-            seatRepository.save(booking.getSeat());
-            bookingRepository.save(booking);
+            cancelExpiredBooking(booking);
         }
+    }
+    
+    // Yardımcı metodlar
+    private Event validateEvent(Long eventId) {
+        return eventRepository.findById(eventId)
+            .orElseThrow(() -> new BookingException("Event not found"));
+    }
+    
+    private Seat validateSeat(Long seatId, Long eventId) {
+        Seat seat = seatRepository.findById(seatId)
+            .orElseThrow(() -> new BookingException("Seat not found"));
+            
+        // Seat'in event'e ait olup olmadığını kontrol et
+        if (!seat.getEvent().getId().equals(eventId)) {
+            throw new BookingException("Seat does not belong to the specified event");
+        }
+        
+        return seat;
+    }
+    
+    private User validateUser(String username) {
+        return userRepository.findByUsername(username)
+            .orElseThrow(() -> new BookingException("User not found"));
+    }
+    
+    private void validateSeatAvailability(Seat seat) {
+        if (seat.getStatus() != SeatStatus.AVAILABLE) {
+            throw new BookingException("Seat is not available");
+        }
+
+        List<BookingStatus> activeStatuses = Arrays.asList(BookingStatus.PENDING, BookingStatus.CONFIRMED);
+        if (bookingRepository.existsBySeatIdAndStatusIn(seat.getId(), activeStatuses)) {
+            throw new BookingException("Seat is already reserved or booked");
+        }
+    }
+    
+    private void validateBookingOwnership(Booking booking, String username) {
+        if (!booking.getUser().getUsername().equals(username)) {
+            throw new BookingException("Unauthorized access to booking");
+        }
+    }
+    
+    private void checkExistingUserBooking(Long userId, Long eventId) {
+        List<BookingStatus> activeStatuses = Arrays.asList(BookingStatus.PENDING, BookingStatus.CONFIRMED);
+        boolean hasExistingBooking = bookingRepository.existsByUserIdAndEventIdAndStatusIn(
+            userId, eventId, activeStatuses);
+            
+        if (hasExistingBooking) {
+            throw new BookingException("User already has an active booking for this event");
+        }
+    }
+    
+    private void cancelExpiredBooking(Booking booking) {
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.getSeat().setStatus(SeatStatus.AVAILABLE);
+        seatRepository.save(booking.getSeat());
+        bookingRepository.save(booking);
     }
 }

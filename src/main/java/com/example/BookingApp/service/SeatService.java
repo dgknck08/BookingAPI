@@ -53,7 +53,6 @@ public class SeatService {
         
         Event event = eventOpt.get();
         
-        // Check if seats already exist for this event
         if (seatRepository.countByEventId(eventId) > 0) {
             throw new RuntimeException("Seats already exist for this event");
         }
@@ -147,11 +146,11 @@ public class SeatService {
     
     private BigDecimal calculateSeatPrice(BigDecimal basePrice, int row, int totalRows) {
         if (row <= totalRows / 3) {
-            return basePrice.multiply(new BigDecimal("2.0")); // VIP: 2x base price
+            return basePrice.multiply(new BigDecimal("2.0")); 
         } else if (row <= (totalRows * 2) / 3) {
-            return basePrice.multiply(new BigDecimal("1.5")); // Premium: 1.5x base price
+            return basePrice.multiply(new BigDecimal("1.5")); 
         } else {
-            return basePrice; // Regular: base price
+            return basePrice; 
         }
     }
     

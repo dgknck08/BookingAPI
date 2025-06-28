@@ -39,14 +39,12 @@ public class AuthService {
 
     public AuthResponse login(AuthRequest request, HttpSession session) {
         try {
-            // Spring Security AuthenticationManager kullanarak doğrulama
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
             );
             
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
             
-            // User entity'sini database'den çek
             Optional<User> userOpt = userRepository.findById(userDetails.getId());
             if (userOpt.isEmpty()) {
                 return new AuthResponse("User not found", false);
@@ -54,15 +52,12 @@ public class AuthService {
             
             User user = userOpt.get();
             
-            // Kullanıcının aktif olduğunu kontrol et
             if (!user.isActive()) {
                 return new AuthResponse("Account is deactivated", false);
             }
             
-            // Redis session oluştur
             sessionService.createUserSession(session.getId(), user);
             
-            // SecurityContext'i güncelle
             SecurityContextHolder.getContext().setAuthentication(authentication);
             
             return new AuthResponse("Login successful", session.getId(), true);
@@ -99,17 +94,13 @@ public class AuthService {
     public void logout(HttpSession session) {
         try {
             if (session != null) {
-                // Önce Redis session'ı temizle
                 sessionService.invalidateSession(session.getId());
                 
-                // SecurityContext'i temizle
                 SecurityContextHolder.clearContext();
                 
-                // HTTP session'ı invalidate et (dikkatli ol, response gönderildikten sonra)
                 session.invalidate();
             }
         } catch (Exception e) {
-            // Session zaten invalidate olmuş olabilir, logla ve devam et
             System.err.println("Logout error: " + e.getMessage());
         }
     }
@@ -120,13 +111,11 @@ public class AuthService {
                 return null;
             }
             
-            // Önce Redis session'dan kontrol et
             UserDto userFromSession = sessionService.getUserFromSession(session.getId());
             if (userFromSession != null) {
                 return userFromSession;
             }
             
-            // SecurityContext'ten de kontrol et (fallback)
             return SecurityUtils.getCurrentUser();
             
         } catch (Exception e) {
@@ -134,7 +123,6 @@ public class AuthService {
         }
     }
     
-    // Session durumunu kontrol etmek için yardımcı method
     public boolean isSessionValid(HttpSession session) {
         if (session == null) {
             return false;

@@ -68,7 +68,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            // Redis session kullandığınız için Spring session'ı devre dışı 
+            // Redis session kullanılıyor devredışı;
             .sessionManagement(session -> 
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider())
@@ -95,7 +95,6 @@ public class SecurityConfig {
             )
             // Logout handler disable contorllerda işlem.
             .logout(logout -> logout.disable())
-            // Filter sırası düzeltildi.
             .addFilterAfter(customSessionAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         
         return http.build();

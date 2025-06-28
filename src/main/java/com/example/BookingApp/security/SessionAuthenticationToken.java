@@ -22,7 +22,7 @@ public class SessionAuthenticationToken extends AbstractAuthenticationToken {
 
     @Override
     public Object getCredentials() {
-        return sessionId; // Credentials olarak session ID kullan
+        return sessionId; // Credentials 
     }
 
     @Override
@@ -36,6 +36,5 @@ public class SessionAuthenticationToken extends AbstractAuthenticationToken {
 
     @Override
     public void eraseCredentials() {
-        // Session ID'yi temizleme, Redis'te tutulduğu için
     }
 }

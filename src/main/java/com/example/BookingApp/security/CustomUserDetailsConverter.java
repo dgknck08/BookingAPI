@@ -9,7 +9,7 @@ public class CustomUserDetailsConverter {
                 dto.getId(),
                 dto.getUsername(),
                 dto.getEmail(),
-                null, // Redis'te password saklamıyorsun, gerek yok
+                null,
                 dto.getRole(),
                 dto.isActive()
         );
