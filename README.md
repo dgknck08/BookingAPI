@@ -1,21 +1,38 @@
 # BookingAPI
 
-Redis Session-Based REST API
-A Spring Boot REST API demonstrating session-based authentication using Redis for session storage.
-Features
+BookingAPI, otel veya benzeri rezervasyon sistemleri için geliştirilmiş RESTful bir API'dir. Java Spring Boot ile yapılmıştır ve performans için Redis cache entegrasyonu içerir.
 
-Session-based authentication (no JWT tokens)
-Redis session storage for scalability
-User registration and login
-Protected endpoints requiring authentication
-Session management with automatic extension
-Multiple concurrent sessions per user
-Session monitoring and status endpoints
+---
 
-Technologies Used
+## Özellikler
 
-Spring Boot 3.2.0
-Spring Security
-Spring Session Data Redis
-Spring Data JPA
-Redis
+- Kullanıcı kayıt ve giriş işlemleri (Session-based Authentication)
+- Rezervasyon CRUD işlemleri
+- Redis cache ile sık erişilen verilerin hızlı sunulması
+- Redis ile session yönetimi
+- PostgreSQL veya MySQL gibi ilişkisel veritabanı desteği
+- Basit ve anlaşılır REST API endpointleri
+
+---
+
+## Teknolojiler
+
+- Java 17
+- Spring Boot
+- Spring Security (Session-based Authentication)
+- Redis (Cache ve Session yönetimi için)
+- JPA / Hibernate
+- Maven
+
+---
+
+## Redis Kullanımı
+
+BookingAPI performansı artırmak amacıyla Redis kullanır. Özellikle:
+
+- Sık sorgulanan rezervasyon verileri Redis cache'de tutulur, böylece veritabanı yükü azalır ve API daha hızlı yanıt verir.
+- Kullanıcı session bilgileri Redis üzerinde tutulur. Bu, dağıtık ortamda session tutmayı kolaylaştırır ve ölçeklenebilirliği artırır.
+
+Redis bağlantısı `application.properties` dosyasında yapılandırılmıştır ve Spring RedisTemplate ile cache işlemleri yapılmaktadır.
+
+---
