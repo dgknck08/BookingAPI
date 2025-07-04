@@ -42,26 +42,20 @@ public class AuthService {
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
             );
-            
+
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            
-            Optional<User> userOpt = userRepository.findById(userDetails.getId());
-            if (userOpt.isEmpty()) {
-                return new AuthResponse("User not found", false);
-            }
-            
-            User user = userOpt.get();
-            
-            if (!user.isActive()) {
+
+            if (!userDetails.isActive()) {
                 return new AuthResponse("Account is deactivated", false);
             }
-            
-            sessionService.createUserSession(session.getId(), user);
-            
+
+            //User Entity yerine CustomUserService.
+            sessionService.createUserSession(session.getId(), userDetails);
+
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            
+
             return new AuthResponse("Login successful", session.getId(), true);
-            
+
         } catch (DisabledException e) {
             return new AuthResponse("Account is deactivated", false);
         } catch (BadCredentialsException e) {
@@ -72,6 +66,7 @@ public class AuthService {
             return new AuthResponse("Login failed: " + e.getMessage(), false);
         }
     }
+
 
     public AuthResponse register(RegisterRequest request) {
         try {

@@ -1,7 +1,7 @@
 package com.example.BookingApp.util;
 
 import com.example.BookingApp.dto.user.UserDto;
-import com.example.BookingApp.entity.User;
+import com.example.BookingApp.security.CustomUserDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -23,31 +23,30 @@ public class SessionService {
         this.redisTemplate = redisTemplate;
     }
 
-    public void createUserSession(String sessionId, User user) {
-        if (sessionId == null || sessionId.isEmpty() || user == null) {
+    public void createUserSession(String sessionId, CustomUserDetails userDetails) {
+        if (sessionId == null || sessionId.isEmpty() || userDetails == null) {
             logger.warn("Invalid parameters for createUserSession");
             return;
         }
 
         try {
             String sessionKey = SESSION_PREFIX + sessionId;
-            String userSessionKey = USER_SESSION_PREFIX + user.getId();
-            invalidateUserSessions(user.getId());
+            String userSessionKey = USER_SESSION_PREFIX + userDetails.getId();
+            invalidateUserSessions(userDetails.getId());
 
-            UserDto userDto = convertToDto(user);
-
+            // CustomUserDetails -> UserDto dönüşümü
+            UserDto userDto = convertToDto(userDetails);
 
             redisTemplate.opsForValue().set(sessionKey, userDto, SESSION_TIMEOUT, TimeUnit.MINUTES);
             redisTemplate.opsForValue().set(userSessionKey, sessionId, SESSION_TIMEOUT, TimeUnit.MINUTES);
-            
-            logger.debug("Created session for user: {} with sessionId: {}", user.getUsername(), sessionId);
-            
+
+            logger.debug("Created session for user: {} with sessionId: {}", userDetails.getUsername(), sessionId);
+
         } catch (Exception e) {
             logger.error("Error creating user session", e);
             throw new RuntimeException("Failed to create user session", e);
         }
     }
-
 
     public UserDto getUserFromSession(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
@@ -57,7 +56,7 @@ public class SessionService {
         try {
             String sessionKey = SESSION_PREFIX + sessionId;
             Object userData = redisTemplate.opsForValue().get(sessionKey);
-            
+
             if (userData instanceof UserDto) {
                 UserDto userDto = (UserDto) userData;
                 if (userDto.isActive()) {
@@ -67,15 +66,14 @@ public class SessionService {
                     return null;
                 }
             }
-            
+
         } catch (Exception e) {
             logger.error("Error retrieving user from session: {}", sessionId, e);
         }
-        
+
         return null;
     }
 
-  
     public void extendSession(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
             return;
@@ -83,16 +81,16 @@ public class SessionService {
 
         try {
             String sessionKey = SESSION_PREFIX + sessionId;
-            
+
             if (Boolean.TRUE.equals(redisTemplate.hasKey(sessionKey))) {
                 UserDto userDto = getUserFromSession(sessionId);
-                
+
                 if (userDto != null) {
                     String userSessionKey = USER_SESSION_PREFIX + userDto.getId();
-                    
+
                     redisTemplate.expire(sessionKey, SESSION_TIMEOUT, TimeUnit.MINUTES);
                     redisTemplate.expire(userSessionKey, SESSION_TIMEOUT, TimeUnit.MINUTES);
-                    
+
                     logger.debug("Extended session: {}", sessionId);
                 }
             }
@@ -100,7 +98,6 @@ public class SessionService {
             logger.error("Error extending session: {}", sessionId, e);
         }
     }
-
 
     public void invalidateSession(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
@@ -118,12 +115,11 @@ public class SessionService {
                 redisTemplate.delete(userSessionKey);
                 logger.debug("Invalidated session for user: {}", userDto.getUsername());
             }
-            
+
         } catch (Exception e) {
             logger.error("Error invalidating session: {}", sessionId, e);
         }
     }
-
 
     public void invalidateUserSessions(Long userId) {
         if (userId == null) {
@@ -149,7 +145,7 @@ public class SessionService {
         if (sessionId == null || sessionId.isEmpty()) {
             return false;
         }
-        
+
         try {
             String sessionKey = SESSION_PREFIX + sessionId;
             return Boolean.TRUE.equals(redisTemplate.hasKey(sessionKey));
@@ -159,12 +155,11 @@ public class SessionService {
         }
     }
 
-
     public String getActiveSessionForUser(Long userId) {
         if (userId == null) {
             return null;
         }
-        
+
         try {
             String userSessionKey = USER_SESSION_PREFIX + userId;
             return (String) redisTemplate.opsForValue().get(userSessionKey);
@@ -174,25 +169,24 @@ public class SessionService {
         }
     }
 
-
-    public void updateUserInSession(String sessionId, User user) {
-        if (sessionId == null || sessionId.isEmpty() || user == null) {
+    public void updateUserInSession(String sessionId, CustomUserDetails userDetails) {
+        if (sessionId == null || sessionId.isEmpty() || userDetails == null) {
             return;
         }
 
         try {
             String sessionKey = SESSION_PREFIX + sessionId;
-            
+
             if (Boolean.TRUE.equals(redisTemplate.hasKey(sessionKey))) {
-                UserDto userDto = convertToDto(user);
-                
+                UserDto userDto = convertToDto(userDetails);
+
                 Long ttl = redisTemplate.getExpire(sessionKey, TimeUnit.SECONDS);
                 if (ttl != null && ttl > 0) {
                     redisTemplate.opsForValue().set(sessionKey, userDto, ttl, TimeUnit.SECONDS);
                 } else {
                     redisTemplate.opsForValue().set(sessionKey, userDto, SESSION_TIMEOUT, TimeUnit.MINUTES);
                 }
-                
+
                 logger.debug("Updated user data in session: {}", sessionId);
             }
         } catch (Exception e) {
@@ -200,18 +194,16 @@ public class SessionService {
         }
     }
 
-
-    private UserDto convertToDto(User user) {
+    private UserDto convertToDto(CustomUserDetails userDetails) {
         UserDto dto = new UserDto();
-        dto.setId(user.getId());
-        dto.setUsername(user.getUsername());
-        dto.setEmail(user.getEmail());
-        dto.setRole(user.getRole());
-        dto.setActive(user.isActive());
+        dto.setId(userDetails.getId());
+        dto.setUsername(userDetails.getUsername());
+        dto.setEmail(userDetails.getEmail());
+        dto.setRole(userDetails.getRole());
+        dto.setActive(userDetails.isActive());
         return dto;
     }
 
- 
     public void cleanupExpiredSessions() {
         logger.info("Session cleanup completed");
     }

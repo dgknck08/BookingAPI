@@ -48,7 +48,6 @@ public class EventService {
         return events.stream().map(this::convertToDto).collect(Collectors.toList());
     }
     
-    // Geliştirilmiş arama fonksiyonu
     public List<EventDto> searchEvents(String keyword) {
         // Boş veya null keyword kontrolü
         if (keyword == null || keyword.trim().isEmpty()) {
@@ -59,7 +58,6 @@ public class EventService {
         return events.stream().map(this::convertToDto).collect(Collectors.toList());
     }
     
-    // Otomatik tamamlama önerileri
     public List<String> getSearchSuggestions(String keyword) {
         if (keyword == null || keyword.trim().length() < 2) {
             return List.of();
@@ -71,7 +69,6 @@ public class EventService {
                 .collect(Collectors.toList());
     }
     
-    // Kategori ile filtrelenmiş arama
     public List<EventDto> searchEventsByType(String keyword, EventType eventType) {
         if (keyword == null || keyword.trim().isEmpty()) {
             return getEventsByType(eventType);
@@ -96,7 +93,6 @@ public class EventService {
                                         LocalDateTime startDate, LocalDateTime endDate) {
         List<Event> events;
         
-        // Tüm aktif etkinlikleri al
         events = eventRepository.findByStatusOrderByEventDateAsc(EventStatus.ACTIVE);
         
         return events.stream()
