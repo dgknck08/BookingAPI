@@ -23,9 +23,6 @@ public class SessionService {
         this.redisTemplate = redisTemplate;
     }
 
-    /**
-     * Creates a new user session, invalidating any existing session for the user
-     */
     public void createUserSession(String sessionId, User user) {
         if (sessionId == null || sessionId.isEmpty() || user == null) {
             logger.warn("Invalid parameters for createUserSession");
@@ -35,13 +32,11 @@ public class SessionService {
         try {
             String sessionKey = SESSION_PREFIX + sessionId;
             String userSessionKey = USER_SESSION_PREFIX + user.getId();
-
-            // Mevcut session'ları geçersiz kıl 
             invalidateUserSessions(user.getId());
 
             UserDto userDto = convertToDto(user);
 
-            // Transaction benzeri işlem 
+
             redisTemplate.opsForValue().set(sessionKey, userDto, SESSION_TIMEOUT, TimeUnit.MINUTES);
             redisTemplate.opsForValue().set(userSessionKey, sessionId, SESSION_TIMEOUT, TimeUnit.MINUTES);
             
@@ -53,9 +48,7 @@ public class SessionService {
         }
     }
 
-    /**
-     * Retrieves user from session without extending the session
-     */
+
     public UserDto getUserFromSession(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
             return null;
@@ -67,11 +60,9 @@ public class SessionService {
             
             if (userData instanceof UserDto) {
                 UserDto userDto = (UserDto) userData;
-                // Kullanıcının hala aktif 
                 if (userDto.isActive()) {
                     return userDto;
                 } else {
-                    // Deaktif kullanıcının session'ını temizleme
                     invalidateSession(sessionId);
                     return null;
                 }
@@ -84,9 +75,7 @@ public class SessionService {
         return null;
     }
 
-    /**
-     * Extends the session timeout for both session and user session keys
-     */
+  
     public void extendSession(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
             return;
@@ -112,9 +101,7 @@ public class SessionService {
         }
     }
 
-    /**
-     * Invalidates a specific session
-     */
+
     public void invalidateSession(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
             return;
@@ -124,10 +111,8 @@ public class SessionService {
             String sessionKey = SESSION_PREFIX + sessionId;
             UserDto userDto = getUserFromSession(sessionId);
 
-            // Önce session key'ini sil
             redisTemplate.delete(sessionKey);
 
-            // Kullanıcı varsa user session key'ini de sil
             if (userDto != null) {
                 String userSessionKey = USER_SESSION_PREFIX + userDto.getId();
                 redisTemplate.delete(userSessionKey);
@@ -139,9 +124,7 @@ public class SessionService {
         }
     }
 
-    /**
-     * Invalidates all sessions for a specific user
-     */
+
     public void invalidateUserSessions(Long userId) {
         if (userId == null) {
             return;
@@ -162,9 +145,6 @@ public class SessionService {
         }
     }
 
-    /**
-     * Checks if a session is valid and active
-     */
     public boolean isSessionValid(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
             return false;
@@ -179,9 +159,7 @@ public class SessionService {
         }
     }
 
-    /**
-     * Gets the current session ID for a user (if any)
-     */
+
     public String getActiveSessionForUser(Long userId) {
         if (userId == null) {
             return null;
@@ -196,9 +174,7 @@ public class SessionService {
         }
     }
 
-    /**
-     * Updates user data in the current session
-     */
+
     public void updateUserInSession(String sessionId, User user) {
         if (sessionId == null || sessionId.isEmpty() || user == null) {
             return;
@@ -224,9 +200,7 @@ public class SessionService {
         }
     }
 
-    /**
-     * Converts User entity to UserDto for session storage
-     */
+
     private UserDto convertToDto(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
@@ -237,11 +211,8 @@ public class SessionService {
         return dto;
     }
 
-    /**
-     * Cleanup expired sessions (can be called by scheduled task)
-     */
+ 
     public void cleanupExpiredSessions() {
-        // Bu method'u @Scheduled annotasyonu ile düzenli olarak çalıştırabilirsiniz
         logger.info("Session cleanup completed");
     }
 

@@ -147,7 +147,7 @@ public class BookingService {
         }
     }
     
-    // Yardımcı metodlar
+
     private Event validateEvent(Long eventId) {
         return eventRepository.findById(eventId)
             .orElseThrow(() -> new BookingException("Event not found"));
@@ -157,7 +157,7 @@ public class BookingService {
         Seat seat = seatRepository.findById(seatId)
             .orElseThrow(() -> new BookingException("Seat not found"));
             
-        // Seat'in event'e ait olup olmadığını kontrol et
+
         if (!seat.getEvent().getId().equals(eventId)) {
             throw new BookingException("Seat does not belong to the specified event");
         }
