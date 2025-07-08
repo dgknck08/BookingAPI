@@ -1,26 +1,15 @@
 package com.example.BookingApp.dto.event;
 
+import com.example.BookingApp.entityenums.EventType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
+import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
-import com.example.BookingApp.entityenums.EventStatus;
-import com.example.BookingApp.entityenums.EventType;
-
-
-@Getter
-@Setter
-
-@NoArgsConstructor
-public class EventDto {
-    
+@Data
+public class EventCreateRequest {
     @NotBlank(message = "Event title is required")
     private String title;
     
@@ -31,8 +20,6 @@ public class EventDto {
     
     @NotNull(message = "Venue is required")
     private Long venueId;
-    
-    private VenueDto venue;
     
     @NotNull(message = "Event date is required")
     private LocalDateTime eventDate;
@@ -47,8 +34,4 @@ public class EventDto {
     
     private String imageUrl;
     private String organizer;
-    private EventStatus status;
-    private List<SeatDto> availableSeats;
-    private long availableSeatCount;
-    private long totalSeatCount;
 }

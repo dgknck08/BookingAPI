@@ -1,26 +1,21 @@
 package com.example.BookingApp.dto.auth;
 
-import lombok.Getter;
-import lombok.Setter;
+import com.example.BookingApp.dto.user.UserResponse;
 
-@Getter
-@Setter
-public class AuthResponse {
-    private String message;
-    private String sessionId;
-    private boolean success;
-
-    // Constructors
-    public AuthResponse() {}
-
-    public AuthResponse(String message, boolean success) {
-        this.message = message;
-        this.success = success;
+public record AuthResponse(
+    boolean success,
+    String message,
+    UserResponse user
+) {
+    public AuthResponse(boolean success, String message) {
+        this(success, message, null);
     }
-
-    public AuthResponse(String message, String sessionId, boolean success) {
-        this.message = message;
-        this.sessionId = sessionId;
-        this.success = success;
+    
+    public static AuthResponse success(String message, UserResponse user) {
+        return new AuthResponse(true, message, user);
+    }
+   
+    public static AuthResponse failure(String message) {
+        return new AuthResponse(false, message, null);
     }
 }

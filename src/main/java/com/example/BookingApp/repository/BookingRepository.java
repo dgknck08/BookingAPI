@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.example.BookingApp.entity.Booking;
-import com.example.BookingApp.entity.User;
 import com.example.BookingApp.entityenums.BookingStatus;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     
-    List<Booking> findByUserOrderByBookedAtDesc(User user);
+    List<Booking> findByUserIdOrderByBookedAtDesc(Long userId);
     
     List<Booking> findByStatus(BookingStatus status);
     

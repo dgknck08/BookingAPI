@@ -35,7 +35,6 @@ public class PaymentDto {
     private String transactionId;
     private LocalDateTime processedAt;
     
-    // Card details for payment processing (should be encrypted in real app)
     private String cardNumber;
     private String cardHolderName;
     private String expiryMonth;

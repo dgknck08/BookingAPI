@@ -1,31 +1,23 @@
 package com.example.BookingApp.mapper;
 
-import com.example.BookingApp.dto.user.UserDto;
+import com.example.BookingApp.dto.auth.RegisterRequest;
+import com.example.BookingApp.dto.user.UserResponse;
 import com.example.BookingApp.entity.User;
+import org.mapstruct.*;
+import java.util.List;
 
-public class UserMapper {
-
-    public static UserDto toDto(User user) {
-        if (user == null) return null;
-
-        UserDto dto = new UserDto();
-        dto.setUsername(user.getUsername());
-        dto.setEmail(user.getEmail());
-        dto.setRole(user.getRole());
-        dto.setActive(user.isActive());
-        return dto;
-    }
-
-    public static User toEntity(UserDto dto) {
-        if (dto == null) return null;
-
-        User user = new User();
-        user.setUsername(dto.getUsername());
-        user.setEmail(dto.getEmail());
-        user.setRole(dto.getRole());
-        user.setActive(dto.isActive());
-        return user;
-    }
+@Mapper(componentModel = "spring")
+public interface UserMapper {
     
+    UserResponse toResponse(User user);
     
+    List<UserResponse> toResponseList(List<User> users);
+    
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "password", ignore = true) 
+    @Mapping(target = "role", ignore = true) 
+    @Mapping(target = "active", ignore = true) 
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    User toEntity(RegisterRequest request);
 }

@@ -67,3 +67,4 @@ Thumbs.db
 # Spring config
 application.properties
 application.yml
+/.apt_generated_tests/

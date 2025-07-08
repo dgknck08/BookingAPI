@@ -1,6 +1,6 @@
 package com.example.BookingApp.util;
 
-import com.example.BookingApp.dto.user.UserDto;
+import com.example.BookingApp.dto.user.UserResponse;
 import com.example.BookingApp.security.CustomUserDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,10 +34,9 @@ public class SessionService {
             String userSessionKey = USER_SESSION_PREFIX + userDetails.getId();
             invalidateUserSessions(userDetails.getId());
 
-            // CustomUserDetails -> UserDto dönüşümü
-            UserDto userDto = convertToDto(userDetails);
+            UserResponse userResponse = convertToUserResponse(userDetails);
 
-            redisTemplate.opsForValue().set(sessionKey, userDto, SESSION_TIMEOUT, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(sessionKey, userResponse, SESSION_TIMEOUT, TimeUnit.MINUTES);
             redisTemplate.opsForValue().set(userSessionKey, sessionId, SESSION_TIMEOUT, TimeUnit.MINUTES);
 
             logger.debug("Created session for user: {} with sessionId: {}", userDetails.getUsername(), sessionId);
@@ -48,7 +47,7 @@ public class SessionService {
         }
     }
 
-    public UserDto getUserFromSession(String sessionId) {
+    public UserResponse getUserFromSession(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
             return null;
         }
@@ -57,10 +56,9 @@ public class SessionService {
             String sessionKey = SESSION_PREFIX + sessionId;
             Object userData = redisTemplate.opsForValue().get(sessionKey);
 
-            if (userData instanceof UserDto) {
-                UserDto userDto = (UserDto) userData;
-                if (userDto.isActive()) {
-                    return userDto;
+            if (userData instanceof UserResponse userResponse) {
+                if (userResponse.active()) {
+                    return userResponse;
                 } else {
                     invalidateSession(sessionId);
                     return null;
@@ -83,10 +81,10 @@ public class SessionService {
             String sessionKey = SESSION_PREFIX + sessionId;
 
             if (Boolean.TRUE.equals(redisTemplate.hasKey(sessionKey))) {
-                UserDto userDto = getUserFromSession(sessionId);
+                UserResponse userResponse = getUserFromSession(sessionId);
 
-                if (userDto != null) {
-                    String userSessionKey = USER_SESSION_PREFIX + userDto.getId();
+                if (userResponse != null) {
+                    String userSessionKey = USER_SESSION_PREFIX + userResponse.id();
 
                     redisTemplate.expire(sessionKey, SESSION_TIMEOUT, TimeUnit.MINUTES);
                     redisTemplate.expire(userSessionKey, SESSION_TIMEOUT, TimeUnit.MINUTES);
@@ -106,14 +104,14 @@ public class SessionService {
 
         try {
             String sessionKey = SESSION_PREFIX + sessionId;
-            UserDto userDto = getUserFromSession(sessionId);
+            UserResponse userResponse = getUserFromSession(sessionId);
 
             redisTemplate.delete(sessionKey);
 
-            if (userDto != null) {
-                String userSessionKey = USER_SESSION_PREFIX + userDto.getId();
+            if (userResponse != null) {
+                String userSessionKey = USER_SESSION_PREFIX + userResponse.id();
                 redisTemplate.delete(userSessionKey);
-                logger.debug("Invalidated session for user: {}", userDto.getUsername());
+                logger.debug("Invalidated session for user: {}", userResponse.username());
             }
 
         } catch (Exception e) {
@@ -178,13 +176,13 @@ public class SessionService {
             String sessionKey = SESSION_PREFIX + sessionId;
 
             if (Boolean.TRUE.equals(redisTemplate.hasKey(sessionKey))) {
-                UserDto userDto = convertToDto(userDetails);
+                UserResponse userResponse = convertToUserResponse(userDetails);
 
                 Long ttl = redisTemplate.getExpire(sessionKey, TimeUnit.SECONDS);
                 if (ttl != null && ttl > 0) {
-                    redisTemplate.opsForValue().set(sessionKey, userDto, ttl, TimeUnit.SECONDS);
+                    redisTemplate.opsForValue().set(sessionKey, userResponse, ttl, TimeUnit.SECONDS);
                 } else {
-                    redisTemplate.opsForValue().set(sessionKey, userDto, SESSION_TIMEOUT, TimeUnit.MINUTES);
+                    redisTemplate.opsForValue().set(sessionKey, userResponse, SESSION_TIMEOUT, TimeUnit.MINUTES);
                 }
 
                 logger.debug("Updated user data in session: {}", sessionId);
@@ -194,14 +192,14 @@ public class SessionService {
         }
     }
 
-    private UserDto convertToDto(CustomUserDetails userDetails) {
-        UserDto dto = new UserDto();
-        dto.setId(userDetails.getId());
-        dto.setUsername(userDetails.getUsername());
-        dto.setEmail(userDetails.getEmail());
-        dto.setRole(userDetails.getRole());
-        dto.setActive(userDetails.isActive());
-        return dto;
+    private UserResponse convertToUserResponse(CustomUserDetails userDetails) {
+        return new UserResponse(
+            userDetails.getId(),
+            userDetails.getUsername(),
+            userDetails.getEmail(),
+            userDetails.getRole(),
+            userDetails.isActive()
+        );
     }
 
     public void cleanupExpiredSessions() {
