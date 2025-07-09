@@ -5,19 +5,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.BookingApp.dto.event.PaymentDto;
-import com.example.BookingApp.dto.user.UserDto;
+import com.example.BookingApp.dto.user.UserResponse;
 import com.example.BookingApp.entity.Booking;
 import com.example.BookingApp.entity.Payment;
 import com.example.BookingApp.entityenums.BookingStatus;
 import com.example.BookingApp.entityenums.PaymentStatus;
 import com.example.BookingApp.repository.BookingRepository;
 import com.example.BookingApp.repository.PaymentRepository;
+import com.example.BookingApp.exception.BookingException;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class PaymentService {
@@ -32,7 +31,7 @@ public class PaymentService {
     private BookingService bookingService;
     
     @Transactional
-    public PaymentDto processPayment(PaymentDto paymentDto, UserDto currentUser) {
+    public PaymentDto processPayment(PaymentDto paymentDto, UserResponse currentUser) {
         Optional<Booking> bookingOpt = bookingRepository.findById(paymentDto.getBookingId());
         if (bookingOpt.isEmpty()) {
             throw new RuntimeException("Booking not found");
@@ -40,7 +39,7 @@ public class PaymentService {
         
         Booking booking = bookingOpt.get();
         
-        if (!booking.getUser().getUsername().equals(currentUser.getUsername())) {
+        if (!booking.getUser().getId().equals(currentUser.id())) {
             throw new RuntimeException("Unauthorized access to booking");
         }
         
@@ -73,7 +72,11 @@ public class PaymentService {
             payment.setProcessedAt(LocalDateTime.now());
             payment.setGatewayResponse("SUCCESS");
             
-            bookingService.confirmBooking(booking.getId(), currentUser);
+            try {
+                bookingService.confirmBooking(booking.getId(), currentUser.id());
+            } catch (BookingException e) {
+                throw new RuntimeException("Failed to confirm booking: " + e.getMessage());
+            }
         } else {
             payment.setStatus(PaymentStatus.FAILED);
             payment.setGatewayResponse("PAYMENT_DECLINED");
@@ -94,13 +97,8 @@ public class PaymentService {
         return paymentOpt.map(this::convertToDto);
     }
     
-    public List<PaymentDto> getUserPayments(UserDto currentUser) {
-        List<Payment> payments = paymentRepository.findByBooking_User_UsernameOrderByCreatedAtDesc(currentUser.getUsername());
-        return payments.stream().map(this::convertToDto).collect(Collectors.toList());
-    }
-    
     @Transactional
-    public PaymentDto refundPayment(Long paymentId, UserDto currentUser) {
+    public PaymentDto refundPayment(Long paymentId, UserResponse currentUser) {
         Optional<Payment> paymentOpt = paymentRepository.findById(paymentId);
         if (paymentOpt.isEmpty()) {
             throw new RuntimeException("Payment not found");
@@ -108,7 +106,7 @@ public class PaymentService {
         
         Payment payment = paymentOpt.get();
         
-        if (!payment.getBooking().getUser().getUsername().equals(currentUser.getUsername())) {
+        if (!payment.getBooking().getUser().getId().equals(currentUser.id())) {
             throw new RuntimeException("Unauthorized access to payment");
         }
         
@@ -122,7 +120,11 @@ public class PaymentService {
             payment.setStatus(PaymentStatus.REFUNDED);
             payment.setGatewayResponse("REFUND_SUCCESS");
             
-            bookingService.cancelBooking(payment.getBooking().getId(), currentUser);
+            try {
+                bookingService.cancelBooking(payment.getBooking().getId(), currentUser.id());
+            } catch (BookingException e) {
+                throw new RuntimeException("Failed to cancel booking: " + e.getMessage());
+            }
         } else {
             throw new RuntimeException("Refund processing failed");
         }
@@ -133,8 +135,6 @@ public class PaymentService {
     }
     
     private boolean processPaymentWithGateway(PaymentDto paymentDto) {
-
-        
         try {
             Thread.sleep(1000); 
             
@@ -155,7 +155,6 @@ public class PaymentService {
     }
     
     private boolean processRefundWithGateway(Payment payment) {
-  
         try {
             Thread.sleep(500); 
             return Math.random() > 0.05; 

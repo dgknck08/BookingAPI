@@ -5,7 +5,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.BookingApp.dto.event.SeatDto;
+import com.example.BookingApp.dto.event.response.SeatResponse;
 import com.example.BookingApp.entity.Event;
 import com.example.BookingApp.entity.Seat;
 import com.example.BookingApp.entityenums.SeatStatus;
@@ -14,6 +14,7 @@ import com.example.BookingApp.repository.EventRepository;
 import com.example.BookingApp.repository.SeatRepository;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -28,24 +29,23 @@ public class SeatService {
     private EventRepository eventRepository;
     
     @Cacheable(value = "seats", key = "#eventId")
-    public List<SeatDto> getSeatsByEvent(Long eventId) {
+    public List<SeatResponse> getSeatsByEvent(Long eventId) {
         List<Seat> seats = seatRepository.findByEventIdOrderBySectionAscRowNumberAscSeatNumberAsc(eventId);
-        return seats.stream().map(this::convertToDto).collect(Collectors.toList());
+        return seats.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
     @Cacheable(value = "seats", key = "#eventId + '_' + #status")
-    public List<SeatDto> getSeatsByEventAndStatus(Long eventId, SeatStatus status) {
+    public List<SeatResponse> getSeatsByEventAndStatus(Long eventId, SeatStatus status) {
         List<Seat> seats = seatRepository.findByEventIdAndStatus(eventId, status);
-        return seats.stream().map(this::convertToDto).collect(Collectors.toList());
+        return seats.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
-    public Optional<SeatDto> getSeatById(Long seatId) {
-        Optional<Seat> seatOpt = seatRepository.findById(seatId);
-        return seatOpt.map(this::convertToDto);
+    public Optional<SeatResponse> getSeatById(Long seatId) {
+        return seatRepository.findById(seatId).map(this::convertToResponse);
     }
     
     @Transactional
-    public List<SeatDto> generateSeatsForEvent(Long eventId, int rows, int seatsPerRow, BigDecimal basePrice) {
+    public List<SeatResponse> generateSeatsForEvent(Long eventId, int rows, int seatsPerRow, BigDecimal basePrice) {
         Optional<Event> eventOpt = eventRepository.findById(eventId);
         if (eventOpt.isEmpty()) {
             throw new RuntimeException("Event not found");
@@ -60,49 +60,43 @@ public class SeatService {
         List<Seat> seats = generateSeatLayout(event, rows, seatsPerRow, basePrice);
         seats = seatRepository.saveAll(seats);
         
-        return seats.stream().map(this::convertToDto).collect(Collectors.toList());
+        return seats.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
     @Transactional
-    public SeatDto updateSeatStatus(Long seatId, SeatStatus newStatus) {
-        Optional<Seat> seatOpt = seatRepository.findById(seatId);
-        if (seatOpt.isEmpty()) {
-            throw new RuntimeException("Seat not found");
-        }
+    public SeatResponse updateSeatStatus(Long seatId, SeatStatus newStatus) {
+        Seat seat = seatRepository.findById(seatId)
+            .orElseThrow(() -> new RuntimeException("Seat not found"));
         
-        Seat seat = seatOpt.get();
         seat.setStatus(newStatus);
         seat = seatRepository.save(seat);
         
-        return convertToDto(seat);
+        return convertToResponse(seat);
     }
     
     @Transactional
-    public SeatDto updateSeatPrice(Long seatId, BigDecimal newPrice) {
-        Optional<Seat> seatOpt = seatRepository.findById(seatId);
-        if (seatOpt.isEmpty()) {
-            throw new RuntimeException("Seat not found");
-        }
+    public SeatResponse updateSeatPrice(Long seatId, BigDecimal newPrice) {
+        Seat seat = seatRepository.findById(seatId)
+            .orElseThrow(() -> new RuntimeException("Seat not found"));
         
-        Seat seat = seatOpt.get();
         seat.setPrice(newPrice);
         seat = seatRepository.save(seat);
         
-        return convertToDto(seat);
+        return convertToResponse(seat);
     }
     
-    public List<SeatDto> getSeatsBySection(Long eventId, String section) {
+    public List<SeatResponse> getSeatsBySection(Long eventId, String section) {
         List<Seat> seats = seatRepository.findByEventIdAndSectionOrderByRowNumberAscSeatNumberAsc(eventId, section);
-        return seats.stream().map(this::convertToDto).collect(Collectors.toList());
+        return seats.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
-    public List<SeatDto> getSeatsByPriceRange(Long eventId, BigDecimal minPrice, BigDecimal maxPrice) {
+    public List<SeatResponse> getSeatsByPriceRange(Long eventId, BigDecimal minPrice, BigDecimal maxPrice) {
         List<Seat> seats = seatRepository.findByEventIdAndPriceBetweenOrderByPriceAsc(eventId, minPrice, maxPrice);
-        return seats.stream().map(this::convertToDto).collect(Collectors.toList());
+        return seats.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
     private List<Seat> generateSeatLayout(Event event, int rows, int seatsPerRow, BigDecimal basePrice) {
-        List<Seat> seats = new java.util.ArrayList<>();
+        List<Seat> seats = new ArrayList<>();
         
         for (int row = 1; row <= rows; row++) {
             for (int seatNum = 1; seatNum <= seatsPerRow; seatNum++) {
@@ -114,8 +108,8 @@ public class SeatService {
                 seat.setSeatType(determineSeatType(row, rows));
                 seat.setStatus(SeatStatus.AVAILABLE);
                 seat.setPrice(calculateSeatPrice(basePrice, row, rows));
-                seat.setXPosition(seatNum * 50); // For visualization
-                seat.setYPosition(row * 40); // For visualization
+                seat.setXPosition(seatNum * 50);
+                seat.setYPosition(row * 40);
                 
                 seats.add(seat);
             }
@@ -154,19 +148,18 @@ public class SeatService {
         }
     }
     
-    private SeatDto convertToDto(Seat seat) {
-        SeatDto dto = new SeatDto();
-        dto.setId(seat.getId());
-        dto.setEventId(seat.getEvent().getId());
-        dto.setSeatNumber(seat.getSeatNumber());
-        dto.setRowNumber(seat.getRowNumber());
-        dto.setSection(seat.getSection());
-        dto.setSeatType(seat.getSeatType());
-        dto.setStatus(seat.getStatus());
-        dto.setPrice(seat.getPrice());
-        dto.setXPosition(seat.getXPosition());
-        dto.setYPosition(seat.getYPosition());
-        return dto;
+    private SeatResponse convertToResponse(Seat seat) {
+        return new SeatResponse(
+            seat.getId(),
+            seat.getEvent().getId(),
+            seat.getSeatNumber(),
+            seat.getRowNumber(),
+            seat.getSection(),
+            seat.getSeatType(),
+            seat.getStatus(),
+            seat.getPrice(),
+            seat.getXPosition(),
+            seat.getYPosition()
+        );
     }
 }
-

@@ -1,6 +1,6 @@
 package com.example.BookingApp.security;
 
-import com.example.BookingApp.dto.user.UserDto;
+import com.example.BookingApp.dto.user.UserResponse;
 import com.example.BookingApp.util.SessionService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -51,15 +51,15 @@ public class CustomSessionAuthenticationFilter extends OncePerRequestFilter {
             HttpSession session = request.getSession(false);
             if (session != null) {
                 String sessionId = session.getId();
-                UserDto userDto = sessionService.getUserFromSession(sessionId);
+                UserResponse userResponse = sessionService.getUserFromSession(sessionId);
 
-                if (userDto != null && userDto.isActive()) {
-                    CustomUserDetails userDetails = CustomUserDetailsConverter.fromDto(userDto);
+                if (userResponse != null && userResponse.active()) {
+                    CustomUserDetails userDetails = CustomUserDetailsConverter.fromDto(userResponse);
 
                     SessionAuthenticationToken authToken = new SessionAuthenticationToken(
-                        userDetails,
-                        sessionId,
-                        userDetails.getAuthorities()
+                            userDetails,
+                            sessionId,
+                            userDetails.getAuthorities()
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 

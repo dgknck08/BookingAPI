@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import com.example.BookingApp.dto.event.VenueDto;
+import com.example.BookingApp.dto.event.response.VenueResponse;
 import com.example.BookingApp.entity.Venue;
 import com.example.BookingApp.repository.VenueRepository;
 
@@ -19,43 +19,42 @@ public class VenueService {
     private VenueRepository venueRepository;
     
     @Cacheable(value = "venues")
-    public List<VenueDto> getAllVenues() {
+    public List<VenueResponse> getAllVenues() {
         List<Venue> venues = venueRepository.findAll();
-        return venues.stream().map(this::convertToDto).collect(Collectors.toList());
+        return venues.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
     @Cacheable(value = "venues", key = "#venueId")
-    public Optional<VenueDto> getVenueById(Long venueId) {
-        Optional<Venue> venueOpt = venueRepository.findById(venueId);
-        return venueOpt.map(this::convertToDto);
+    public Optional<VenueResponse> getVenueById(Long venueId) {
+        return venueRepository.findById(venueId).map(this::convertToResponse);
     }
     
     @Cacheable(value = "venues", key = "#city")
-    public List<VenueDto> getVenuesByCity(String city) {
+    public List<VenueResponse> getVenuesByCity(String city) {
         List<Venue> venues = venueRepository.findByCityIgnoreCase(city);
-        return venues.stream().map(this::convertToDto).collect(Collectors.toList());
+        return venues.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
-    public List<VenueDto> searchVenues(String keyword) {
+    public List<VenueResponse> searchVenues(String keyword) {
         List<Venue> venues = venueRepository.findByNameContainingIgnoreCaseOrCityContainingIgnoreCase(keyword, keyword);
-        return venues.stream().map(this::convertToDto).collect(Collectors.toList());
+        return venues.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
-    public List<VenueDto> getVenuesByCapacityRange(Integer minCapacity, Integer maxCapacity) {
+    public List<VenueResponse> getVenuesByCapacityRange(Integer minCapacity, Integer maxCapacity) {
         List<Venue> venues = venueRepository.findByCapacityBetween(minCapacity, maxCapacity);
-        return venues.stream().map(this::convertToDto).collect(Collectors.toList());
+        return venues.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
-    private VenueDto convertToDto(Venue venue) {
-        VenueDto dto = new VenueDto();
-        dto.setId(venue.getId());
-        dto.setName(venue.getName());
-        dto.setAddress(venue.getAddress());
-        dto.setCity(venue.getCity());
-        dto.setCountry(venue.getCountry());
-        dto.setCapacity(venue.getCapacity());
-        dto.setDescription(venue.getDescription());
-        dto.setImageUrl(venue.getImageUrl());
-        return dto;
+    private VenueResponse convertToResponse(Venue venue) {
+        return new VenueResponse(
+            venue.getId(),
+            venue.getName(),
+            venue.getAddress(),
+            venue.getCity(),
+            venue.getCountry(),
+            venue.getCapacity(),
+            venue.getDescription(),
+            venue.getImageUrl()
+        );
     }
 }

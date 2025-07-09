@@ -1,3 +1,5 @@
+package com.example.BookingApp.security;
+
 import com.example.BookingApp.dto.user.UserResponse;
 
 public class CustomUserDetailsConverter {

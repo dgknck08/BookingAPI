@@ -15,4 +15,6 @@ public interface AuthService {
     void logout(HttpSession session);
     
     UserResponse getCurrentUser(HttpSession session);
+    
+	boolean isUserLoggedIn(HttpSession session);
 }
