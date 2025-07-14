@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -14,7 +15,7 @@ import com.example.BookingApp.entityenums.Role;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
+@Builder
 @Getter
 @Setter
 @NoArgsConstructor

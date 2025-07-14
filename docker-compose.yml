@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15
@@ -7,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: bookingdb
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: artikunutma1
     ports:
       - "5432:5432"
     volumes:
@@ -34,9 +32,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bookingdb
+      SPRING_DATASOURCE_URL: jdbc:postgresql://booking-postgres:5432/bookingdb
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATASOURCE_PASSWORD: artikunutma1
       
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
