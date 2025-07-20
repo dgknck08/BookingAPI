@@ -1,8 +1,8 @@
-# BookingAPI 🏨
+# BookingAPI 
 
 A session-based booking API implemented with Redis for session management and caching. Built with Java Spring Boot for high performance and scalability.
 
-## 🚀 Features
+##  Features
 
 - **User Authentication**: Session-based authentication with secure login/logout
 - **Booking Management**: Complete CRUD operations for reservations
@@ -11,7 +11,7 @@ A session-based booking API implemented with Redis for session management and ca
 - **RESTful Design**: Clean and intuitive API endpoints
 - **Scalable Architecture**: Distributed session management ready
 
-## 🛠️ Technologies Used
+##  Technologies Used
 
 - **Java 17** - Modern Java features
 - **Spring Boot** - Application framework
@@ -21,7 +21,7 @@ A session-based booking API implemented with Redis for session management and ca
 - **PostgreSQL/MySQL** - Relational database
 - **Maven** - Dependency management
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -35,7 +35,7 @@ A session-based booking API implemented with Redis for session management and ca
                         ────────────────────
 ```
 
-## ⚡ Performance Optimizations
+## Performance Optimizations
 
 ### Redis Caching Strategy
 - **Frequently queried booking data** is cached in Redis to reduce database load
@@ -43,12 +43,12 @@ A session-based booking API implemented with Redis for session management and ca
 - **Automatic cache invalidation** on data updates
 
 ### Benefits
-- 🚀 **Faster API responses** through intelligent caching
-- 📈 **Reduced database load** with cached frequent queries
-- 🔄 **Scalable sessions** for distributed deployments
-- 💾 **Memory-efficient** session storage
+-  **Faster API responses** through intelligent caching
+-  **Reduced database load** with cached frequent queries
+-  **Scalable sessions** for distributed deployments
+-  **Memory-efficient** session storage
 
-## 📋 API Endpoints
+##  API Endpoints
 
 ### Authentication
 ```http
@@ -75,7 +75,7 @@ GET    /api/hotels/{id}/rooms  # Get hotel rooms
 GET    /api/rooms/available    # Get available rooms by date
 ```
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 - Java 17 or higher
@@ -120,7 +120,7 @@ mvn spring-boot:run
 
 The API will be available at `http://localhost:8080`
 
-## 🐳 Docker Setup
+##  Docker Setup
 
 ```dockerfile
 # Dockerfile
@@ -160,7 +160,7 @@ services:
       - "5432:5432"
 ```
 
-## 📊 Example Usage
+##  Example Usage
 
 ### Create a New Booking
 ```bash
@@ -194,7 +194,7 @@ curl -X POST http://localhost:8080/api/bookings \
 }
 ```
 
-## 🧪 Testing
+##  Testing
 
 ### Run Unit Tests
 ```bash
@@ -211,7 +211,7 @@ mvn verify
 mvn jacoco:report
 ```
 
-## 📈 Performance Benchmarks
+##  Performance Benchmarks
 
 | Endpoint | Without Cache | With Redis Cache | Improvement |
 |----------|---------------|------------------|-------------|
@@ -219,7 +219,7 @@ mvn jacoco:report
 | GET /api/hotels | 200ms | 20ms | **90% faster** |
 | Session lookup | 50ms | 5ms | **90% faster** |
 
-## 🔧 Configuration Options
+##  Configuration Options
 
 ### Cache Configuration
 ```properties
@@ -242,35 +242,4 @@ server.servlet.session.cookie.http-only=true
 server.servlet.session.cookie.secure=true
 ```
 
-## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📞 Contact
-
-- **GitHub**: [@dgknck08](https://github.com/dgknck08)
-- **LinkedIn**: [Your LinkedIn Profile]
-- **Email**: [your.email@example.com]
-
-## 🎯 Future Enhancements
-
-- [ ] Add Swagger/OpenAPI documentation
-- [ ] Implement payment integration
-- [ ] Add email notifications
-- [ ] Multi-language support
-- [ ] Mobile app API endpoints
-- [ ] Advanced search and filtering
-- [ ] Rate limiting
-- [ ] Monitoring and metrics with Micrometer
-
----
-
-⭐ **If you found this project helpful, please give it a star!** ⭐
