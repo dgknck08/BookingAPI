@@ -211,13 +211,6 @@ mvn verify
 mvn jacoco:report
 ```
 
-##  Performance Benchmarks
-
-| Endpoint | Without Cache | With Redis Cache | Improvement |
-|----------|---------------|------------------|-------------|
-| GET /api/bookings | 150ms | 15ms | **90% faster** |
-| GET /api/hotels | 200ms | 20ms | **90% faster** |
-| Session lookup | 50ms | 5ms | **90% faster** |
 
 ##  Configuration Options
 
